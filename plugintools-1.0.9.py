@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #---------------------------------------------------------------------------
-# Plugin Tools v1.0.8
+# Plugin Tools v1.0.9
 #---------------------------------------------------------------------------
 # License: GPL (http://www.gnu.org/licenses/gpl-3.0.html)
 # Based on code from youtube, parsedom and pelisalacarta addons

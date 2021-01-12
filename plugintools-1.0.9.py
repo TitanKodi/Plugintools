@@ -152,7 +152,8 @@ def read(url):
     f = urllib_request.urlopen(url)
     data = f.read()
     f.close()
-    
+    if not isinstance(data, str):
+        data = data.decode("utf-8", "strict")
     return data
 
 def read_body_and_headers(url, post=None, headers=[], follow_redirects=False, timeout=None):
@@ -323,8 +324,7 @@ def read_body_and_headers(url, post=None, headers=[], follow_redirects=False, ti
     fin = time.time()
     _log("read_body_and_headers Downloaded in %d seconds " % (fin-inicio+1))
     if not isinstance(data, str):
-        _log("read_body_and_headers body="+str(data))
-
+        data = data.decode("utf-8", "strict")
     return data,returnheaders
 
 class NoRedirectHandler(urllib_request.HTTPRedirectHandler):

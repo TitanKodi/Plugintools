@@ -50,11 +50,13 @@ import time
 import socket
 from io import BytesIO
 import gzip
+import six
 from six.moves import urllib_request
-from six.moves.urllib.parse import unquote_plus, quote_plus
+from six.moves.urllib.parse import unquote_plus, quote_plus, urlencode
 module_log_enabled = False
 http_debug_log_enabled = False
-
+if six.PY3:
+    unicode = str
 LIST = "list"
 THUMBNAIL = "thumbnail"
 MOVIES = "movies"
@@ -159,8 +161,6 @@ def read(url):
 def read_body_and_headers(url, post=None, headers=[], follow_redirects=False, timeout=None):
     xbmc.log("read_body_and_headers "+url, 2)
 
-    if post is not None:
-        _log("read_body_and_headers post="+post)
 
     if len(headers)==0:
         headers.append(["User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:18.0) Gecko/20100101 Firefox/18.0"])
@@ -252,8 +252,10 @@ def read_body_and_headers(url, post=None, headers=[], follow_redirects=False, ti
 
     # Diccionario para las cabeceras
     txheaders = {}
-
-    # Construye el request
+    if type(post) == dict: post = urlencode(post)
+    if post:
+        if isinstance(post, unicode):
+            post = post.encode('utf-8', 'strict')
     if post is None:
         _log("read_body_and_headers GET request")
     else:
@@ -265,7 +267,8 @@ def read_body_and_headers(url, post=None, headers=[], follow_redirects=False, ti
         _log("read_body_and_headers header %s=%s" % (str(header[0]),str(header[1])) )
         txheaders[header[0]]=header[1]
     _log("read_body_and_headers ---------------------------")
-
+    if post and six.PY3:
+        post = six.ensure_binary(post)
     req = Request(url, post, txheaders)
     if timeout is None:
         handle=urlopen(req)
@@ -324,7 +327,9 @@ def read_body_and_headers(url, post=None, headers=[], follow_redirects=False, ti
     fin = time.time()
     _log("read_body_and_headers Downloaded in %d seconds " % (fin-inicio+1))
     if not isinstance(data, str):
-        data = data.decode("utf-8", "strict")
+        try:
+            data = data.decode("utf-8", "strict")
+        except: data = str(data)    
     return data,returnheaders
 
 class NoRedirectHandler(urllib_request.HTTPRedirectHandler):
@@ -363,7 +368,7 @@ def find_single_match(text,pattern):
 
     return result
 
-def add_item( action="" , title="" , plot="" , url="" , thumbnail="" , fanart="" , show="" , episode="" , extra="", page="", info_labels = None, isPlayable = False , folder=True ):
+def add_item( action="" , title="" , plot="" , url="" , thumbnail="" , fanart="" , genre="", date="", credits="", show="" , episode="" , extra="", page="", sort=False, info_labels = None, isPlayable = False , folder=True ):
     _log("add_item action=["+action+"] title=["+title+"] url=["+url+"] thumbnail=["+thumbnail+"] fanart=["+fanart+"] show=["+show+"] episode=["+episode+"] extra=["+extra+"] page=["+page+"] isPlayable=["+str(isPlayable)+"] folder=["+str(folder)+"]")
 
     listitem = xbmcgui.ListItem(title)
@@ -371,7 +376,7 @@ def add_item( action="" , title="" , plot="" , url="" , thumbnail="" , fanart=""
     listitem.setArt({'icon': thumbnail, 'thumb': thumbnail, 'poster': thumbnail,
                     'fanart': fanart})
     if info_labels is None:
-        info_labels = { "Title" : title, "FileName" : title, "Plot" : plot }
+        info_labels = { "Title" : title, "FileName" : title, "Plot" : plot, "Genre": genre, "dateadded": date, "credits": credits }
     listitem.setInfo( "video", info_labels )
 
     if fanart!="":
@@ -390,7 +395,8 @@ def add_item( action="" , title="" , plot="" , url="" , thumbnail="" , fanart=""
     else:
         itemurl = '%s?action=%s&title=%s&url=%s&thumbnail=%s&plot=%s&extra=%s&page=%s' % ( sys.argv[ 0 ] , action , quote_plus( title ) , quote_plus(url) , quote_plus( thumbnail ) , quote_plus( plot ) , quote_plus( extra ) , quote_plus( page ))
         xbmcplugin.addDirectoryItem( handle=int(sys.argv[1]), url=itemurl, listitem=listitem, isFolder=folder)
-
+    if sort:
+        xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
 def close_item_list():
     _log("close_item_list")
 
